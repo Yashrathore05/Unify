@@ -10,6 +10,7 @@ const currentUser = {
 export function renderDecidePage(container) {
     const events = mockEvents.filter(e => !e.isRegistered)
     let index = 0
+    const eventHistory = [] // Track event history for swipe down (previous)
 
     let startX = 0
     let startY = 0
@@ -28,26 +29,58 @@ export function renderDecidePage(container) {
 
         modal.innerHTML = `
             <div class="register-card fade-in">
-                <h2 class="text-xl font-bold mb-4">
-                    Register for ${event.title}
+                <button id="modal-close-btn" class="absolute top-4 right-4 p-2 rounded-full bg-surface hover:bg-surface/80 transition-colors">
+                    ${icons.X()}
+                </button>
+
+                <h2 class="text-2xl font-bold mb-2 text-text-primary">
+                    Register for Event
                 </h2>
+                <p class="text-sm text-text-secondary mb-6">${event.title}</p>
 
                 <div class="space-y-4">
-                    <input id="reg-name" class="w-full p-3 rounded-xl border"
-                        value="${currentUser.name}" />
+                    <div>
+                        <label class="block text-sm font-semibold text-text-primary mb-2">Full Name</label>
+                        <input id="reg-name" type="text" 
+                            class="w-full px-4 py-3 rounded-xl bg-surface border border-border 
+                                   text-text-primary placeholder-text-muted
+                                   focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" 
+                            value="${currentUser.name}" />
+                    </div>
 
-                    <input id="reg-email" class="w-full p-3 rounded-xl border"
-                        value="${currentUser.email}" />
+                    <div>
+                        <label class="block text-sm font-semibold text-text-primary mb-2">Email</label>
+                        <input id="reg-email" type="email" 
+                            class="w-full px-4 py-3 rounded-xl bg-surface border border-border 
+                                   text-text-primary placeholder-text-muted
+                                   focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" 
+                            value="${currentUser.email}" />
+                    </div>
 
-                    <input id="reg-college" class="w-full p-3 rounded-xl border"
-                        value="${currentUser.college}" />
+                    <div>
+                        <label class="block text-sm font-semibold text-text-primary mb-2">College</label>
+                        <input id="reg-college" type="text" 
+                            class="w-full px-4 py-3 rounded-xl bg-surface border border-border 
+                                   text-text-primary placeholder-text-muted
+                                   focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" 
+                            value="${currentUser.college}" />
+                    </div>
                 </div>
 
-                <button
-                    id="submit-register"
-                    class="w-full mt-6 py-3 btn-primary rounded-xl font-semibold">
-                    Submit Registration
-                </button>
+                <div class="mt-6 flex gap-3">
+                    <button
+                        id="cancel-register"
+                        class="flex-1 py-3 px-4 rounded-xl bg-surface border border-border 
+                               text-text-secondary font-semibold hover:bg-surface/80 transition-colors">
+                        Cancel
+                    </button>
+                    <button
+                        id="submit-register"
+                        class="flex-1 py-3 px-4 rounded-xl bg-primary text-white font-semibold
+                               hover:bg-primary-hover transition-colors shadow-lg shadow-primary/30">
+                        Submit Registration
+                    </button>
+                </div>
             </div>
         `
 
@@ -55,18 +88,27 @@ export function renderDecidePage(container) {
             if (e.target === modal) modal.remove()
         })
 
+        const closeModal = () => modal.remove()
+
+        modal.querySelector('#modal-close-btn')?.addEventListener('click', closeModal)
+        modal.querySelector('#cancel-register')?.addEventListener('click', closeModal)
+
         modal.querySelector('#submit-register').addEventListener('click', () => {
             console.log('Registered:', event.id)
 
-            // simulate success
-            modal.querySelector('#submit-register').textContent = 'Registered ✓'
-            modal.querySelector('#submit-register').disabled = true
+            const submitBtn = modal.querySelector('#submit-register')
+            submitBtn.textContent = 'Registered ✓'
+            submitBtn.disabled = true
+            submitBtn.classList.remove('hover:bg-primary-hover')
+            submitBtn.classList.add('bg-success', 'cursor-not-allowed')
 
             setTimeout(() => {
                 modal.remove()
+                // Save current index to history before moving forward
+                if (index >= 0) eventHistory.push(index)
                 index++
                 render()
-            }, 600)
+            }, 800)
         })
 
         document.body.appendChild(modal)
@@ -80,12 +122,48 @@ export function renderDecidePage(container) {
         if (!event) return
 
         haptic(12)
+        const card = container.querySelector('#swipe-card')
 
         if (dir === 'right') {
-            openRegisterModal(event)
-        } else {
-            index++
-            render()
+            // Swipe RIGHT → Register
+            card.classList.add('swipe-right')
+            setTimeout(() => {
+                openRegisterModal(event)
+            }, 200)
+        } else if (dir === 'left') {
+            // Swipe LEFT → Save
+            card.classList.add('swipe-left')
+            // Mark event as saved
+            event.isSaved = true
+            console.log('Event saved:', event.id)
+            setTimeout(() => {
+                // Save current index to history before moving forward
+                if (index >= 0) eventHistory.push(index)
+                index++
+                render()
+            }, 350)
+        } else if (dir === 'up') {
+            // Swipe UP → Skip
+            card.classList.add('swipe-up')
+            setTimeout(() => {
+                // Save current index to history before moving forward
+                if (index >= 0) eventHistory.push(index)
+                index++
+                render()
+            }, 350)
+        } else if (dir === 'down') {
+            // Swipe DOWN → Previous event
+            card.classList.add('swipe-down')
+            setTimeout(() => {
+                if (eventHistory.length > 0) {
+                    // Go back to last viewed event
+                    index = eventHistory.pop()
+                } else if (index > 0) {
+                    // Fallback: just go back one if no history
+                    index--
+                }
+                render()
+            }, 350)
         }
     }
 
@@ -104,16 +182,33 @@ export function renderDecidePage(container) {
         const dx = e.touches[0].clientX - startX
         const dy = e.touches[0].clientY - startY
 
-        card.style.transform =
-            `translate(${dx}px, ${dy}px) rotate(${dx * 0.06}deg)`
+        // Determine primary swipe direction (horizontal vs vertical)
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
 
-        if (dx > 50) {
+        if (absDy > absDx && dy < -50) {
+            // Swiping UP
+            card.style.transform = `translate(${dx}px, ${dy}px)`
+            intent.className = 'swipe-intent visible up'
+            intent.innerHTML = `<span>SKIP</span>`
+        } else if (absDy > absDx && dy > 50 && index > 0) {
+            // Swiping DOWN (go to previous event)
+            card.style.transform = `translate(${dx}px, ${dy}px)`
+            intent.className = 'swipe-intent visible down'
+            intent.innerHTML = `<span>PREVIOUS</span>`
+        } else if (dx > 50) {
+            // Swiping RIGHT
+            card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.06}deg)`
             intent.className = 'swipe-intent visible right'
             intent.innerHTML = `<span>REGISTER</span>`
         } else if (dx < -50) {
+            // Swiping LEFT
+            card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.06}deg)`
             intent.className = 'swipe-intent visible left'
             intent.innerHTML = `<span>SAVE</span>`
         } else {
+            // Default position
+            card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.03}deg)`
             intent.className = 'swipe-intent'
             intent.innerHTML = ''
         }
@@ -123,12 +218,35 @@ export function renderDecidePage(container) {
         if (!dragging) return
         dragging = false
 
+        const card = container.querySelector('#swipe-card')
+        const intent = container.querySelector('#swipe-intent')
+
         const dx = e.changedTouches[0].clientX - startX
+        const dy = e.changedTouches[0].clientY - startY
         const threshold = 90
 
-        if (dx > threshold) handleSwipe('right')
-        else if (dx < -threshold) handleSwipe('left')
-        else render()
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
+
+        // Check vertical swipe first (UP/DOWN), then horizontal
+        if (absDy > absDx && dy < -threshold) {
+            // Swipe UP → Skip
+            handleSwipe('up')
+        } else if (absDy > absDx && dy > threshold && (eventHistory.length > 0 || index > 0)) {
+            // Swipe DOWN → Previous event
+            handleSwipe('down')
+        } else if (dx > threshold) {
+            // Swipe RIGHT → Register
+            handleSwipe('right')
+        } else if (dx < -threshold) {
+            // Swipe LEFT → Save
+            handleSwipe('left')
+        } else {
+            // Reset card position
+            card.style.transform = ''
+            intent.className = 'swipe-intent'
+            intent.innerHTML = ''
+        }
     }
 
     /* =========================
@@ -153,7 +271,7 @@ export function renderDecidePage(container) {
 
                 <div id="swipe-intent" class="swipe-intent"></div>
 
-                <div id="swipe-card" class="absolute inset-0 decide-card touch-none">
+                <div id="swipe-card" class="absolute decide-card touch-none">
 
                     <div class="decide-hero">
                         <img src="${event.image}" />
