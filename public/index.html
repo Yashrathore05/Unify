@@ -18,8 +18,30 @@
         rel="stylesheet"
     />
 
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bg-primary': '#f8fafc',
+                        'bg-secondary': '#ffffff',
+                        'surface': '#f1f5f9',
+                        'text-primary': '#0b1220',
+                        'text-secondary': '#334155',
+                        'text-muted': '#64748b',
+                        'border': '#e5eaf1',
+                        'primary': '#2563eb',
+                        'primary-hover': '#1d4ed8',
+                    }
+                }
+            }
+        }
+    </script>
+
     <!-- GLOBAL STYLES (COMPILED / CUSTOM CSS ONLY) -->
-    <link rel="stylesheet" href="../public/css/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
 </head>
 
 <body class="bg-bg-primary text-text-primary font-sans antialiased">
@@ -27,6 +49,6 @@
     <div id="app" class="min-h-screen pb-20 safe-area-inset-bottom"></div>
 
     <!-- MAIN ENTRY -->
-    <script type="module" src="../public/js/app.js"></script>
+    <script type="module" src="/js/app.js"></script>
 </body>
 </html>
