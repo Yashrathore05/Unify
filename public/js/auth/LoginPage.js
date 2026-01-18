@@ -13,7 +13,7 @@ export function renderLoginPage(container, onLogin, onSwitchToSignup) {
                     <!-- LOGO HEADER -->
                     <div class="text-center mb-8">
                         <img
-                            src="/logo.svg"
+                            src="/public/logo.svg"
                             alt="Unify"
                             class="mx-auto h-12 mb-3"
                         />
